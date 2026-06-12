@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 
 export const authenticate = (
@@ -48,4 +48,20 @@ export const authenticate = (
       .status(403)
       .json({ message: "Forbidden: Invalid or expired token" });
   }
+};
+
+export const authorizeRoles = (...roles: string[]): RequestHandler => {
+  return (req, res, next) => {
+    const currentRole = req.user?.role;
+
+    if (!currentRole) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!roles.includes(currentRole)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    next();
+  };
 };

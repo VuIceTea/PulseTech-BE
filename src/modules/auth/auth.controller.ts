@@ -6,6 +6,7 @@ import {
   registerUser,
   verifyEmail,
 } from "./auth.service";
+import { cartService } from "../cart/cart.service";
 import { parseCreateUserBody } from "../user/user.validator";
 
 function escapeHtml(str: string): string {
@@ -25,6 +26,15 @@ export const loginHandler: RequestHandler = async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await loginUser(email, password);
+    // If client provided a guest cartId, merge it into user's cart
+    const cartId = req.body.cartId || req.headers['x-cart-id'] || null;
+    if (cartId) {
+      try {
+        await cartService.mergeGuestCartToUser(result.user.id, cartId);
+      } catch (err) {
+        // ignore merge errors
+      }
+    }
     res.status(200).json({ data: result });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

@@ -13,3 +13,9 @@ export const GetProductsQueryDto = z.object({
 });
 
 export type GetProductsQueryDto = z.infer<typeof GetProductsQueryDto>;
+
+export const GetAdminProductsQueryDto = GetProductsQueryDto.extend({
+  isActive: z.coerce.boolean().optional(),
+});
+
+export type GetAdminProductsQueryDto = z.infer<typeof GetAdminProductsQueryDto>;
