@@ -26,13 +26,12 @@ export const loginHandler: RequestHandler = async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await loginUser(email, password);
-    // If client provided a guest cartId, merge it into user's cart
-    const cartId = req.body.cartId || req.headers['x-cart-id'] || null;
+    const cartId = req.body.cartId || req.headers["x-cart-id"] || null;
     if (cartId) {
       try {
         await cartService.mergeGuestCartToUser(result.user.id, cartId);
       } catch (err) {
-        // ignore merge errors
+        console.error("Failed to merge guest cart ", err);
       }
     }
     res.status(200).json({ data: result });

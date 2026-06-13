@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import cookieParser from "cookie-parser";
 import path from "node:path";
 import connectDatabase from "./config/database";
 import { connectRedis } from "./lib/redis";
@@ -11,6 +12,7 @@ import brandRouter from "./modules/brand";
 import categoryRouter from "./modules/category";
 import userRouter from "./modules/user";
 import productRouter from "./modules/product";
+import cartRouter from "./modules/cart";
 import orderRouter from "./modules/order";
 
 const app = express();
@@ -18,6 +20,7 @@ const port = Number(process.env.PORT ?? 5000);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(requestLogger);
 
 const publicDir = path.resolve(process.cwd(), "public");
@@ -34,6 +37,7 @@ app.use("/api/brands", brandRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/users", userRouter);
 app.use("/api/products", productRouter);
+app.use("/api/cart", cartRouter);
 app.use("/api/orders", orderRouter);
 
 app.use(notFoundHandler);
