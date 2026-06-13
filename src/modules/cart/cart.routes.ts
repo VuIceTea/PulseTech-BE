@@ -9,6 +9,7 @@ import {
 
 const router = Router();
 
+// Guest and authenticated users can use cart endpoints.
 router.get("/", getCartHandler);
 router.post("/add", addToCartHandler);
 router.patch("/update/:id", updateCartItemHandler);

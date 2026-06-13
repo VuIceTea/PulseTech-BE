@@ -5,12 +5,20 @@ import { AddToCartDto, UpdateCartItemDto } from "./dto/cart.dto";
 import { randomUUID } from "crypto";
 
 function getCartIdFromReq(req: any): string | null {
-  return (
-    (req.headers && req.headers["x-cart-id"]) ||
-    (req.query && req.query.cartId) ||
-    (req.body && req.body.cartId) ||
-    null
-  );
+  // check header, query, body, cookies
+  const header =
+    req.headers && (req.headers["x-cart-id"] || req.headers["x-cartid"]);
+  if (header) return header as string;
+  if (req.query && req.query.cartId) return req.query.cartId as string;
+  if (req.body && req.body.cartId) return req.body.cartId as string;
+  if (req.cookies && req.cookies.cartId) return req.cookies.cartId as string;
+  // fallback: parse cookie header
+  const cookieHeader = req.headers && req.headers.cookie;
+  if (cookieHeader && typeof cookieHeader === "string") {
+    const m = cookieHeader.match(/(?:^|; )cartId=([^;]+)/);
+    if (m) return decodeURIComponent(m[1]!);
+  }
+  return null;
 }
 
 function getStatusCode(error: unknown, fallback: number): number {
@@ -40,12 +48,18 @@ export const getCartHandler: RequestHandler = async (req, res) => {
     let cartId = getCartIdFromReq(req);
     if (!cartId) {
       cartId = randomUUID();
+      try {
+        res.cookie("cartId", cartId, { maxAge: 1000 * 60 * 60 * 24 * 30 });
+      } catch {}
       return res
         .status(200)
         .json({ data: { cartItems: [], totalPrice: 0 }, cartId });
     }
 
     const cart = await cartService.getGuestCart(cartId);
+    try {
+      res.cookie("cartId", cartId, { maxAge: 1000 * 60 * 60 * 24 * 30 });
+    } catch {}
     res
       .status(200)
       .json({ data: cart || { cartItems: [], totalPrice: 0 }, cartId });
@@ -76,6 +90,10 @@ export const addToCartHandler: RequestHandler = async (req, res) => {
     // guest
     let cartId = getCartIdFromReq(req);
     if (!cartId) cartId = randomUUID();
+    // ensure cookie so browser keeps cartId for subsequent requests
+    try {
+      res.cookie("cartId", cartId, { maxAge: 1000 * 60 * 60 * 24 * 30 });
+    } catch {}
     const cartItem = await cartService.addToGuestCart(cartId, parsed.data);
     res.status(201).json({ data: cartItem, cartId });
   } catch (error) {
@@ -107,10 +125,16 @@ export const updateCartItemHandler: RequestHandler = async (req, res) => {
       return res.status(200).json({ data: cartItem });
     }
 
-    // guest
+    // guest: param id is productVariantId
     const productVariantId = parseId(req.params.id);
+    const cartId = getCartIdFromReq(req);
+    if (!cartId) throw new AppError("Cart id is required", 400);
+    // ensure cookie
+    try {
+      res.cookie("cartId", cartId, { maxAge: 1000 * 60 * 60 * 24 * 30 });
+    } catch {}
     const cartItem = await cartService.updateGuestCartItem(
-      productVariantId ? (getCartIdFromReq(req) as string) : "",
+      cartId,
       productVariantId,
       parsed.data,
     );
@@ -137,6 +161,9 @@ export const removeFromCartHandler: RequestHandler = async (req, res) => {
     const cartId = getCartIdFromReq(req);
     if (!cartId) throw new AppError("Cart id is required", 400);
     await cartService.removeFromGuestCart(cartId, productVariantId);
+    try {
+      res.cookie("cartId", cartId, { maxAge: 1000 * 60 * 60 * 24 * 30 });
+    } catch {}
     res.status(200).json({ message: "Removed from cart" });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

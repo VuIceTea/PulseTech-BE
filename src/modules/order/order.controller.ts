@@ -19,7 +19,7 @@ function parseOrderId(value: unknown): string {
  */
 export const createOrderHandler: RequestHandler = async (req, res) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).user?.userId || (req as any).user?.id;
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -44,7 +44,7 @@ export const createOrderHandler: RequestHandler = async (req, res) => {
  */
 export const getMyOrdersHandler: RequestHandler = async (req, res) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).user?.userId || (req as any).user?.id;
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -66,7 +66,7 @@ export const getMyOrdersHandler: RequestHandler = async (req, res) => {
 export const getOrderHandler: RequestHandler = async (req, res) => {
   try {
     const orderId = parseOrderId(req.params.id);
-    const userId = (req as any).user?.id;
+    const userId = (req as any).user?.userId || (req as any).user?.id;
 
     const order = await orderService.getOrder(orderId, userId);
     res.status(200).json({ data: order });
@@ -82,7 +82,7 @@ export const getOrderHandler: RequestHandler = async (req, res) => {
 export const cancelOrderHandler: RequestHandler = async (req, res) => {
   try {
     const orderId = parseOrderId(req.params.id);
-    const userId = (req as any).user?.id;
+    const userId = (req as any).user?.userId || (req as any).user?.id;
 
     // Verify user owns this order
     await orderService.getOrder(orderId, userId);
