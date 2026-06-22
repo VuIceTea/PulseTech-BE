@@ -22,6 +22,19 @@ export const env = {
 
   // Redis
   REDIS_URL: process.env.REDIS_URL || "",
+  // VNPAY
+  VNPAY_TMN_CODE: process.env.VNPAY_TMN_CODE || "",
+  VNPAY_HASH_SECRET: process.env.VNPAY_HASH_SECRET || "",
+  VNPAY_URL: process.env.VNPAY_URL || "",
+  VNPAY_RETURN_URL: process.env.VNPAY_RETURN_URL || "",
+  // MOMO
+  MOMO_ENDPOINT: process.env.MOMO_ENDPOINT || "",
+  MOMO_PARTNER_CODE: process.env.MOMO_PARTNER_CODE || "",
+  MOMO_ACCESS_KEY: process.env.MOMO_ACCESS_KEY || "",
+  MOMO_SECRET_KEY: process.env.MOMO_SECRET_KEY || "",
+  MOMO_RETURN_URL: process.env.MOMO_RETURN_URL || "",
+  // Bank transfer info (VietQR instructions)
+  BANK_ACCOUNT_INFO: process.env.BANK_ACCOUNT_INFO || "",
 } as const;
 
 if (!env.DATABASE_URL) {

@@ -1,89 +1,97 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Verification Failed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xác thực thất bại - PulseTech</title>
     <style>
       body {
+        margin: 0;
         font-family:
-          Inter,
-          ui-sans-serif,
+          "Inter",
           system-ui,
           -apple-system,
-          "Segoe UI",
-          Roboto,
-          "Helvetica Neue",
-          Arial;
-        background: #fff7f7;
-        color: #4c0519;
+          sans-serif;
+        background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+        height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 100vh;
-        margin: 0;
       }
       .card {
-        background: white;
-        padding: 36px;
-        border-radius: 12px;
-        box-shadow: 0 6px 24px rgba(76, 5, 25, 0.06);
-        max-width: 640px;
+        background: #fff;
+        padding: 48px 40px;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+        max-width: 420px;
         text-align: center;
       }
       .icon {
-        width: 72px;
-        height: 72px;
-        margin: 0 auto 16px;
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
         border-radius: 50%;
-        background: #ef4444;
+        background: #fbe6e6;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-size: 36px;
+      }
+      .icon img {
+        width: 48px;
+        height: 48px;
       }
       h1 {
-        margin: 0 0 8px;
-        font-size: 20px;
+        font-size: 24px;
+        color: #cc0000;
+        margin: 0 0 12px;
       }
       p {
-        margin: 0 0 16px;
-        color: #7f1d1d;
+        font-size: 15px;
+        color: #4b5563;
+        line-height: 1.6;
+        margin-bottom: 24px;
       }
-      a.button {
-        display: inline-block;
-        padding: 10px 18px;
-        background: #7f1d1d;
-        color: white;
-        border-radius: 8px;
-        text-decoration: none;
-      }
-      .msg {
-        background: #fff1f2;
-        color: #33101b;
+      .error-box {
+        background: #fef2f2;
+        border: 1px solid #fee2e2;
+        color: #cc0000;
         padding: 12px;
         border-radius: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 24px;
+        font-size: 14px;
+      }
+      .btn {
+        display: inline-block;
+        background: #cc0000;
+        color: #fff;
+        text-decoration: none;
+        padding: 12px 32px;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: background 0.2s;
+      }
+      .btn:hover {
+        background: #a30000;
       }
     </style>
   </head>
   <body>
     <div class="card">
-      <div class="icon">✕</div>
-      <h1>Xác minh thất bại</h1>
-      <div class="msg" id="msg">
-        Một lỗi đã xảy ra trong quá trình xác minh email của bạn. Vui lòng thử
-        lại hoặc liên hệ với bộ phận hỗ trợ nếu vấn đề vẫn tiếp diễn.
+      <div class="icon">
+        <img src="/icons/fail.svg" alt="Fail" />
       </div>
-      <a class="button" href="/">Return</a>
+      <h1>Xác minh thất bại</h1>
+      <div id="error-msg" class="error-box">
+        Liên kết không hợp lệ hoặc đã hết hạn.
+      </div>
+      <a href="/login.html" class="btn">Quay lại trang Đăng nhập</a>
     </div>
     <script>
       const params = new URLSearchParams(location.search);
       const msg = params.get("msg");
       if (msg) {
-        const el = document.getElementById("msg");
-        el.textContent = decodeURIComponent(msg);
+        document.getElementById("error-msg").textContent =
+          decodeURIComponent(msg);
       }
     </script>
   </body>

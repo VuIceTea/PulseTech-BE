@@ -1,4 +1,6 @@
+// file: cart.routes.ts
 import { Router } from "express";
+import { optionalAuthenticate } from "../../middlewares/authMiddleware";
 import {
   getCartHandler,
   addToCartHandler,
@@ -9,7 +11,8 @@ import {
 
 const router = Router();
 
-// Guest and authenticated users can use cart endpoints.
+router.use(optionalAuthenticate);
+
 router.get("/", getCartHandler);
 router.post("/add", addToCartHandler);
 router.patch("/update/:id", updateCartItemHandler);

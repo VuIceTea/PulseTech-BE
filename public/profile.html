@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile - PulseTech</title>
+    <style>
+      body {
+        margin: 0;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #f3f4f6;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .card {
+        background: #fff;
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        width: 100%;
+      }
+      .logo {
+        text-align: center;
+        font-size: 24px;
+        font-weight: 800;
+        color: #4f46e5;
+        margin-bottom: 20px;
+      }
+      h2 {
+        text-align: center;
+        color: #111827;
+        margin: 0 0 20px;
+      }
+      .info {
+        background: #f9fafb;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        font-family: monospace;
+        font-size: 14px;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+        word-break: break-all;
+      }
+      .btn {
+        display: block;
+        text-align: center;
+        background: #ef4444;
+        color: #fff;
+        text-decoration: none;
+        padding: 10px;
+        border-radius: 8px;
+        font-weight: 600;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo">PulseTech</div>
+      <h2>Thông tin người dùng</h2>
+      <div id="userInfo" class="info">Đang tải...</div>
+      <div id="tokenInfo" class="info"></div>
+      <a
+        href="/login.html"
+        class="btn"
+        onclick="localStorage.removeItem('token')"
+        >Đăng xuất</a
+      >
+    </div>
+
+    <script>
+      async function loadProfile() {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          window.location.href = "/login.html";
+          return;
+        }
+
+        try {
+          const res = await fetch("http://localhost:5000/api/users/profile", {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (!res.ok) throw new Error("Token không hợp lệ hoặc hết hạn");
+
+          const data = await res.json();
+          document.getElementById("userInfo").textContent = JSON.stringify(
+            data.data,
+            null,
+            2,
+          );
+          document.getElementById("tokenInfo").textContent = `Token: ${token}`;
+        } catch (err) {
+          document.getElementById("userInfo").textContent = err.message;
+        }
+      }
+      loadProfile();
+    </script>
+  </body>
+</html>

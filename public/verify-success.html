@@ -1,24 +1,102 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Verification Successful</title>
-  <style>
-    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f6fffb; color:#022c22; display:flex; align-items:center; justify-content:center; height:100vh; margin:0}
-    .card{background:white;padding:36px;border-radius:12px;box-shadow:0 6px 24px rgba(2,44,34,0.08);max-width:540px;text-align:center}
-    .icon{width:72px;height:72px;margin:0 auto 16px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;color:white;font-size:36px}
-    h1{margin:0 0 8px;font-size:20px}
-    p{margin:0 0 16px;color:#065f46}
-    a.button{display:inline-block;padding:10px 18px;background:#064e3b;color:white;border-radius:8px;text-decoration:none}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="icon">✓</div>
-    <h1>Xác minh thành công</h1>
-    <p>Email của bạn đã được xác minh. Bây giờ bạn có thể đăng nhập vào tài khoản của mình.</p>
-    <a class="button" href="auth/login">Sign in</a>
-  </div>
-</body>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xác thực thành công - PulseTech</title>
+    <style>
+      body {
+        margin: 0;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: linear-gradient(135deg, #e0f7fa 0%, #e8f5e9 100%);
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .card {
+        background: #fff;
+        padding: 48px 40px;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+        max-width: 420px;
+        text-align: center;
+      }
+      .icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        border-radius: 50%;
+        background: #e6f9ec;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .icon img {
+        width: 48px;
+        height: 48px;
+      }
+      h1 {
+        font-size: 24px;
+        color: #28a745;
+        margin: 0 0 12px;
+      }
+      p {
+        font-size: 15px;
+        color: #4b5563;
+        line-height: 1.6;
+        margin-bottom: 32px;
+      }
+      .btn {
+        display: inline-block;
+        background: #28a745;
+        color: #fff;
+        text-decoration: none;
+        padding: 12px 32px;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: background 0.2s;
+      }
+      .btn:hover {
+        background: #218838;
+      }
+      .countdown {
+        font-weight: 600;
+        color: #28a745;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="icon">
+        <img src="/icons/success.svg" alt="Success" />
+      </div>
+      <h1>Xác minh thành công!</h1>
+      <p>
+        Tài khoản của bạn đã được kích hoạt. Bây giờ bạn có thể đăng nhập và
+        trải nghiệm PulseTech.
+      </p>
+      <a href="/login.html" class="btn">Đến trang Đăng nhập</a>
+      <p style="margin-top: 24px; font-size: 13px">
+        Tự động chuyển hướng sau
+        <span id="timer" class="countdown">5</span> giây...
+      </p>
+    </div>
+    <script>
+      let timeLeft = 5;
+      const timerElement = document.getElementById("timer");
+      const interval = setInterval(() => {
+        timeLeft--;
+        timerElement.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          window.location.href = "/login.html";
+        }
+      }, 1000);
+    </script>
+  </body>
 </html>
