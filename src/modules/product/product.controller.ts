@@ -11,6 +11,7 @@ import {
   GetAdminProductsQueryDto,
   GetProductsQueryDto,
 } from "./dto/get-products-query.dto";
+import { promotionService } from "../promotion/promotion.service";
 
 function getStatusCode(error: unknown, fallback: number): number {
   return error instanceof AppError ? error.statusCode : fallback;
@@ -97,14 +98,33 @@ export const getFeaturedProductsHandler: RequestHandler = async (req, res) => {
 
 export const createProductHandler: RequestHandler = async (req, res) => {
   try {
-    const parsed = CreateProductDto.safeParse(req.body);
+    // 1. Parse data từ FormData (các field text gửi kèm sẽ nằm trong req.body)
+    const bodyData = { ...req.body };
+
+    // Parse các field có thể được gửi dưới dạng JSON string từ FormData
+    if (typeof bodyData.specifications === "string") {
+      bodyData.specifications = JSON.parse(bodyData.specifications);
+    }
+
+    // Convert boolean/number (vì FormData luôn gửi dạng string)
+    bodyData.basePrice = Number(bodyData.basePrice);
+    bodyData.stock = Number(bodyData.stock);
+    bodyData.salePrice = bodyData.salePrice ? Number(bodyData.salePrice) : null;
+    bodyData.isFeatured =
+      bodyData.isFeatured === "true" || bodyData.isFeatured === true;
+    // 2. Validate dữ liệu (tạm thời bỏ qua validate images URL vì ảnh chưa có link)
+    const parsed = CreateProductDto.omit({ images: true }).safeParse(bodyData);
     if (!parsed.success) {
       return res.status(400).json({
         message: parsed.error.issues[0]?.message ?? "Invalid product payload",
       });
     }
+    // 3. Lấy danh sách file ảnh từ Multer
+    const files = req.files as Express.Multer.File[];
 
-    const product = await productService.createProduct(parsed.data);
+    // 4. Gọi service tạo sản phẩm (truyền kèm files để service tự upload lên Firebase)
+    const product = await productService.createProduct(parsed.data, files);
+
     res.status(201).json({ data: product });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -115,18 +135,42 @@ export const createProductHandler: RequestHandler = async (req, res) => {
 export const updateProductHandler: RequestHandler = async (req, res) => {
   try {
     const productId = parseProductId(req.params.id);
-    const parsed = UpdateProductDto.safeParse(req.body);
+    const bodyData = { ...req.body };
+    if (typeof bodyData.specifications === "string") {
+      bodyData.specifications = JSON.parse(bodyData.specifications);
+    }
+    if (bodyData.basePrice !== undefined)
+      bodyData.basePrice = Number(bodyData.basePrice);
+    if (bodyData.stock !== undefined) bodyData.stock = Number(bodyData.stock);
+    if (bodyData.salePrice !== undefined) {
+      bodyData.salePrice = bodyData.salePrice
+        ? Number(bodyData.salePrice)
+        : null;
+    }
+    if (bodyData.isFeatured !== undefined) {
+      bodyData.isFeatured =
+        bodyData.isFeatured === "true" || bodyData.isFeatured === true;
+    }
+    if (bodyData.isActive !== undefined) {
+      bodyData.isActive =
+        bodyData.isActive === "true" || bodyData.isActive === true;
+    }
+    const parsed = UpdateProductDto.omit({ images: true }).safeParse(bodyData);
+
     if (!parsed.success) {
       return res.status(400).json({
         message: parsed.error.issues[0]?.message ?? "Invalid product payload",
       });
     }
-
-    if (Object.keys(parsed.data).length === 0) {
+    if (Object.keys(parsed.data).length === 0 && !req.files?.length) {
       return res.status(400).json({ message: "No fields to update" });
     }
-
-    const product = await productService.updateProduct(productId, parsed.data);
+    const files = req.files as Express.Multer.File[];
+    const product = await productService.updateProduct(
+      productId,
+      parsed.data,
+      files,
+    );
     res.status(200).json({ data: product });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -216,4 +260,20 @@ export const deleteVariantHandler: RequestHandler = async (req, res) => {
     const message = error instanceof Error ? error.message : String(error);
     res.status(getStatusCode(error, 400)).json({ message });
   }
+};
+
+export const updatePromotionHandler: RequestHandler = async (req, res) => {
+  const id = String(req.params.id);
+  if (!id) return res.status(400).json({ message: "Promotion ID is required" });
+
+  const promotion = await promotionService.updatePromotion(id, req.body);
+  res.json({ data: promotion });
+};
+
+export const deletePromotionHandler: RequestHandler = async (req, res) => {
+  const id = String(req.params.id);
+  if (!id) return res.status(400).json({ message: "Promotion ID is required" });
+
+  await promotionService.deletePromotion(id);
+  res.json({ message: "Promotion deleted successfully" });
 };

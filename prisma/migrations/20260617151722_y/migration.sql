@@ -1,0 +1,10 @@
+-- DropIndex
+DROP INDEX "addresses_userId_idx";
+
+-- AlterTable
+ALTER TABLE "addresses" ALTER COLUMN "detail" DROP DEFAULT,
+ALTER COLUMN "provinceId" DROP DEFAULT,
+ALTER COLUMN "provinceName" DROP DEFAULT,
+ALTER COLUMN "wardId" DROP DEFAULT,
+ALTER COLUMN "wardName" DROP DEFAULT,
+ALTER COLUMN "updatedAt" DROP DEFAULT;

@@ -1,0 +1,11 @@
+import { Router } from "express";
+import { getCartHandler, addToCartHandler, updateCartItemHandler, removeFromCartHandler, clearCartHandler, } from "./cart.controller";
+const router = Router();
+// Guest and authenticated users can use cart endpoints.
+router.get("/", getCartHandler);
+router.post("/add", addToCartHandler);
+router.patch("/update/:id", updateCartItemHandler);
+router.delete("/remove/:id", removeFromCartHandler);
+router.delete("/clear", clearCartHandler);
+export default router;
+//# sourceMappingURL=cart.routes.js.map

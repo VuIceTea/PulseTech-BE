@@ -7,19 +7,23 @@ import {
   getAllOrdersHandler,
   updateOrderStatusHandler,
   getOrderDetailsHandler,
+  vnpayReturnHandler,
+  vnpayIpnHandler,
+  momoNotifyHandler,
+  momoReturnHandler,
 } from "./order.controller";
 import { authenticate, authorizeRoles } from "../../middlewares/authMiddleware";
 import { constants } from "../../config";
 
 const router = Router();
 
-// Customer routes (require authentication)
+// Customer routes
 router.post("/", authenticate, createOrderHandler);
 router.get("/my-orders", authenticate, getMyOrdersHandler);
 router.get("/:id", authenticate, getOrderHandler);
 router.patch("/:id/cancel", authenticate, cancelOrderHandler);
 
-// Admin routes (require admin role)
+// Admin routes
 router.get(
   "/admin/all",
   authenticate,
@@ -38,5 +42,11 @@ router.get(
   authorizeRoles(constants.ROLES.ADMIN),
   getOrderDetailsHandler,
 );
+
+// Payment callbacks
+router.post("/vnpay/ipn", vnpayIpnHandler);
+router.get("/vnpay/return", vnpayReturnHandler);
+router.post("/momo/notify", momoNotifyHandler);
+router.get("/momo/return", momoReturnHandler);
 
 export default router;

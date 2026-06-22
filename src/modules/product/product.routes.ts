@@ -1,4 +1,5 @@
 import { Router } from "express";
+import multer from "multer";
 import {
   createProductHandler,
   deleteProductHandler,
@@ -18,24 +19,34 @@ import { constants } from "../../config";
 
 const router = Router();
 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
 router.get(
   "/admin",
   authenticate,
   authorizeRoles(constants.ROLES.ADMIN),
   listAdminProductsHandler,
 );
+
 router.post(
   "/",
   authenticate,
   authorizeRoles(constants.ROLES.ADMIN),
+  upload.array("images", 10),
   createProductHandler,
 );
+
 router.patch(
   "/:id",
   authenticate,
   authorizeRoles(constants.ROLES.ADMIN),
+  upload.array("images", 10),
   updateProductHandler,
 );
+
 router.delete(
   "/:id",
   authenticate,

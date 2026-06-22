@@ -38,34 +38,34 @@ function parseId(value: unknown): string {
 export const getCartHandler: RequestHandler = async (req, res) => {
   try {
     const userId = (req as any).user?.userId || (req as any).user?.id;
+
     if (userId) {
+      console.log(`[CartController] User đã login: ${userId}`);
       const cart = await cartService.getCart(userId);
-      return res
-        .status(200)
-        .json({ data: cart || { cartItems: [], totalPrice: 0 } });
+
+      // Xóa cookie cartId cũ của guest để tránh client gửi lên lại lần sau gây nhầm lẫn
+      res.clearCookie("cartId");
+
+      return res.json({
+        data: cart,
+        cartId: cart.id,
+      });
     }
 
-    let cartId = getCartIdFromReq(req);
+    // Guest
+    const cartId = getCartIdFromReq(req);
     if (!cartId) {
-      cartId = randomUUID();
-      try {
-        res.cookie("cartId", cartId, { maxAge: 1000 * 60 * 60 * 24 * 30 });
-      } catch {}
-      return res
-        .status(200)
-        .json({ data: { cartItems: [], totalPrice: 0 }, cartId });
+      return res.json({
+        data: { cartItems: [], totalPrice: 0 },
+        cartId: null,
+      });
     }
 
-    const cart = await cartService.getGuestCart(cartId);
-    try {
-      res.cookie("cartId", cartId, { maxAge: 1000 * 60 * 60 * 24 * 30 });
-    } catch {}
-    res
-      .status(200)
-      .json({ data: cart || { cartItems: [], totalPrice: 0 }, cartId });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    res.status(getStatusCode(error, 400)).json({ message });
+    const guestCart = await cartService.getGuestCart(cartId);
+    res.json({ data: guestCart, cartId });
+  } catch (error: any) {
+    console.error("[CartController] Error:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -87,13 +87,14 @@ export const addToCartHandler: RequestHandler = async (req, res) => {
       return res.status(201).json({ data: cartItem });
     }
 
-    // guest
+    // === GUEST USER ===
     let cartId = getCartIdFromReq(req);
     if (!cartId) cartId = randomUUID();
-    // ensure cookie so browser keeps cartId for subsequent requests
+
     try {
       res.cookie("cartId", cartId, { maxAge: 1000 * 60 * 60 * 24 * 30 });
-    } catch {}
+    } catch (e) {}
+
     const cartItem = await cartService.addToGuestCart(cartId, parsed.data);
     res.status(201).json({ data: cartItem, cartId });
   } catch (error) {

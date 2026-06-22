@@ -24,16 +24,19 @@ function getStatusCode(error: unknown, fallback: number): number {
 
 export const loginHandler: RequestHandler = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, cartId } = req.body;
+
     const result = await loginUser(email, password);
-    const cartId = req.body.cartId || req.headers["x-cart-id"] || null;
-    if (cartId) {
+
+    if (cartId && typeof cartId === "string") {
       try {
         await cartService.mergeGuestCartToUser(result.user.id, cartId);
+        console.log(`✅ Merged guest cart ${cartId} to user ${result.user.id}`);
       } catch (err) {
-        console.error("Failed to merge guest cart ", err);
+        console.error("Merge guest cart failed:", err);
       }
     }
+
     res.status(200).json({ data: result });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -56,21 +59,14 @@ export const verifyEmailHandler: RequestHandler = async (req, res) => {
   try {
     const token = typeof req.query.token === "string" ? req.query.token : "";
     await verifyEmail(token);
-    const clientUrl = process.env.CLIENT_URL || "";
-    const redirectBase = clientUrl.replace(/\/$/, "");
-    if (redirectBase) {
-      return res.redirect(`${redirectBase}/verify/success`);
-    }
-    return res.redirect(`/verify/success`);
+
+    // Chuyển hướng về trang HTML success trong thư mục public
+    return res.redirect(`/verify-success.html`);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    const clientUrl = process.env.CLIENT_URL || "";
-    const redirectBase = clientUrl.replace(/\/$/, "");
     const q = encodeURIComponent(message);
-    if (redirectBase) {
-      return res.redirect(`${redirectBase}/verify/fail?msg=${q}`);
-    }
-    return res.redirect(`/verify/fail?msg=${q}`);
+    // Chuyển hướng về trang HTML fail trong thư mục public
+    return res.redirect(`/verify-fail.html?msg=${q}`);
   }
 };
 

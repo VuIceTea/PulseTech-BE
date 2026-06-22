@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cookieParser from "cookie-parser";
+import bodyParser from "body-parser";
 import path from "node:path";
 import connectDatabase from "./config/database";
 import { connectRedis } from "./lib/redis";
@@ -14,12 +15,17 @@ import userRouter from "./modules/user";
 import productRouter from "./modules/product";
 import cartRouter from "./modules/cart";
 import orderRouter from "./modules/order";
+import paymentRouter from "./modules/payment/payment.routes";
+import couponRouter from "./modules/coupon/coupon.routes";
+import promotionRouter from "./modules/promotion/promotion.routes";
+import shippingRouter from "./modules/shipping/shipping.routes";
+import locationRouter from "./modules/location";
 
 const app = express();
 const port = Number(process.env.PORT ?? 5000);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(requestLogger);
 
@@ -39,6 +45,31 @@ app.use("/api/users", userRouter);
 app.use("/api/products", productRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/orders", orderRouter);
+app.use("/api/payments", paymentRouter);
+app.use("/api/coupons", couponRouter);
+app.use("/api/promotions", promotionRouter);
+app.use("/api/shipping", shippingRouter);
+app.use("/api/locations", locationRouter);
+
+app.get("/payment-success", (req, res) => {
+  res.send(`
+    <h1 style="color:green">✅ Thanh toán thành công!</h1>
+    <p><strong>Order Code:</strong> ${req.query.orderCode || "N/A"}</p>
+    <p><strong>Status:</strong> SUCCESS</p>
+    <hr>
+    <a href="/">← Quay lại trang chủ</a>
+  `);
+});
+
+app.get("/payment-failed", (req, res) => {
+  res.send(`
+    <h1 style="color:red">❌ Thanh toán thất bại hoặc bị hủy</h1>
+    <p><strong>Order Code:</strong> ${req.query.orderCode || "N/A"}</p>
+    <p><strong>Status:</strong> FAILED</p>
+    <hr>
+    <a href="/">← Quay lại trang chủ</a>
+  `);
+});
 
 app.use(notFoundHandler);
 app.use(errorHandler);

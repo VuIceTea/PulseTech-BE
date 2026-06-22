@@ -27,21 +27,50 @@ model User {
   orders        Order[]
   reviews       Review[]
   notifications Notification[]
+  payments      Payment[]
+
+  @@map("users")
 }
 
 model Address {
-  id            String  @id @default(uuid())
-  userId        String
-  user          User    @relation(fields: [userId], references: [id])
-  fullName      String
-  phone         String
-  province      String
-  district      String
-  ward          String
-  detailAddress String
-  isDefault     Boolean @default(false)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  orders Order[]
+  provinceId   String
+  provinceName String
+
+  wardId   String
+  wardName String
+
+  detail String
+
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+
+  @@map("addresses")
+}
+
+model Province {
+  id    String @id @default(uuid())
+  code  String @unique
+  name  String
+  wards Ward[]
+
+  @@map("provinces")
+}
+
+model Ward {
+  id         String   @id @default(uuid())
+  code       String   @unique
+  name       String
+  type       String
+  provinceId String
+  province   Province @relation(fields: [provinceId], references: [id])
+
+  @@map("wards")
 }
 
 model Brand {
@@ -53,6 +82,8 @@ model Brand {
   isActive    Boolean @default(true)
 
   products Product[]
+
+  @@map("brands")
 }
 
 model Category {
@@ -69,6 +100,8 @@ model Category {
   // Self-referential relationship (Parent - Children)
   parent   Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
   children Category[] @relation("CategoryToCategory")
+
+  @@map("categories")
 }
 
 model Product {
@@ -96,6 +129,8 @@ model Product {
   productVariants ProductVariant[]
   wishlistItems   WishlistItem[]
   reviews         Review[]
+
+  @@map("products")
 }
 
 model ProductVariant {
@@ -113,6 +148,9 @@ model ProductVariant {
   cartItems     CartItem[]
   orderItems    OrderItem[]
   wishlistItems WishlistItem[]
+  promotion     Promotion?
+
+  @@map("product_variants")
 }
 
 model Cart {
@@ -120,6 +158,8 @@ model Cart {
   userId    String     @unique
   user      User       @relation(fields: [userId], references: [id])
   cartItems CartItem[]
+
+  @@map("carts")
 }
 
 model CartItem {
@@ -129,6 +169,8 @@ model CartItem {
   productVariantId String
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
   quantity         Int
+
+  @@map("cart_items")
 }
 
 model Wishlist {
@@ -136,6 +178,8 @@ model Wishlist {
   userId        String         @unique
   user          User           @relation(fields: [userId], references: [id])
   wishlistItems WishlistItem[]
+
+  @@map("wishlists")
 }
 
 model WishlistItem {
@@ -149,6 +193,8 @@ model WishlistItem {
   createdAt DateTime @default(now())
   product   Product? @relation(fields: [productId], references: [id])
   productId String?
+
+  @@map("wishlist_items")
 }
 
 model Order {
@@ -170,6 +216,8 @@ model Order {
 
   orderItems OrderItem[]
   payments   Payment[]
+
+  @@map("orders")
 }
 
 model OrderItem {
@@ -183,30 +231,47 @@ model OrderItem {
   quantity         Int
   price            Decimal
   totalPrice       Decimal
+
+  @@map("order_items")
 }
 
 model Payment {
-  id            String    @id @default(uuid())
-  orderId       String
-  order         Order     @relation(fields: [orderId], references: [id])
-  method        String    @default("COD")
-  transactionId String?
-  amount        Decimal
-  status        String    @default("PENDING")
-  paidAt        DateTime?
+  id              String    @id @default(uuid())
+  orderId         String?
+  order           Order?    @relation(fields: [orderId], references: [id])
+  paymentIntentId String?   @unique
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id])
+  method          String    @default("COD")
+  transactionId   String?
+  amount          Decimal
+  status          String    @default("PENDING")
+  paidAt          DateTime?
+  cartSnapshot    Json?
+  createdAt       DateTime  @default(now())
+
+  @@map("payments")
 }
 
 model Coupon {
-  id            String   @id @default(uuid())
-  code          String   @unique
-  discountValue Decimal
-  description   String?
-  discountType  String   @default("PERCENTAGE")
-  validFrom     DateTime
-  validTo       DateTime
-  usageLimit    Int?
-  usedCount     Int      @default(0)
-  isActive      Boolean  @default(true)
+  id                   String   @id @default(uuid())
+  code                 String   @unique
+  discountValue        Decimal
+  description          String?
+  discountType         String   @default("PERCENTAGE")
+  minOrderAmount       Decimal?
+  maxDiscount          Decimal?
+  validFrom            DateTime
+  validTo              DateTime
+  usageLimit           Int?
+  usedCount            Int      @default(0)
+  isActive             Boolean  @default(true)
+  isPublic             Boolean  @default(true)
+  applicableProductIds Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("coupons")
 }
 
 model Review {
@@ -220,6 +285,8 @@ model Review {
   images     String[]
   isApproved Boolean  @default(false)
   createdAt  DateTime @default(now())
+
+  @@map("reviews")
 }
 
 model ShippingMethod {
@@ -228,6 +295,8 @@ model ShippingMethod {
   fee           Decimal
   estimatedDays Int
   isActive      Boolean @default(true)
+
+  @@map("shipping_methods")
 }
 
 model Notification {
@@ -239,4 +308,28 @@ model Notification {
   type      String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model Promotion {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  discountValue Decimal
+  discountType  String  @default("PERCENTAGE")
+
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(true)
+
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productVariantId])
+  @@map("promotions")
 }

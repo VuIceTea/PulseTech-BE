@@ -3,6 +3,9 @@ import { CreateProductDto } from "./dto/create-product.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { Prisma } from "../../../generated/prisma/client";
 import { AppError } from "../../utils/app-error";
+import { promotionService } from "../promotion/promotion.service";
+import { bucket } from "../../lib/firebase";
+import path from "path";
 
 export class ProductService {
   private buildProductListQuery(
@@ -98,8 +101,13 @@ export class ProductService {
       prisma.product.count({ where }),
     ]);
 
+    // 🔥 Quan trọng: Enrich promotion
+    const enrichedProducts = await Promise.all(
+      products.map((p) => promotionService.getProductWithPromotion(p)),
+    );
+
     return {
-      products,
+      products: enrichedProducts,
       pagination: {
         total,
         page,
@@ -119,11 +127,7 @@ export class ProductService {
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        include: {
-          brand: true,
-          category: true,
-          productVariants: true,
-        },
+        include: { brand: true, category: true, productVariants: true },
         skip,
         take,
         orderBy,
@@ -131,8 +135,12 @@ export class ProductService {
       prisma.product.count({ where }),
     ]);
 
+    const enrichedProducts = await Promise.all(
+      products.map((p) => promotionService.getProductWithPromotion(p)),
+    );
+
     return {
-      products,
+      products: enrichedProducts,
       pagination: {
         total,
         page,
@@ -154,31 +162,31 @@ export class ProductService {
         productVariants: true,
         reviews: {
           where: { isApproved: true },
-          include: {
-            user: { select: { name: true, avatar: true } },
-          },
+          include: { user: { select: { name: true, avatar: true } } },
           orderBy: { createdAt: "desc" },
         },
       },
     });
 
-    if (!product) {
-      throw new AppError("Sản phẩm không tồn tại", 404);
-    }
+    if (!product) throw new AppError("Sản phẩm không tồn tại", 404);
 
-    return product;
+    return promotionService.getProductWithPromotion(product); // ← Thêm dòng này
   }
 
   /**
    * Select the featured product.
    */
   async getFeaturedProducts(limit = 8) {
-    return await prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: { isActive: true, isFeatured: true },
-      include: { brand: true, category: true },
+      include: { brand: true, category: true, productVariants: true },
       take: limit,
       orderBy: { createdAt: "desc" },
     });
+
+    return Promise.all(
+      products.map((p) => promotionService.getProductWithPromotion(p)),
+    );
   }
 
   // ==================== ADMIN ====================
@@ -186,13 +194,34 @@ export class ProductService {
   /**
    * Create new product (Admin)
    */
-  async createProduct(data: CreateProductDto) {
-    // Business validation
+  async createProduct(
+    data: Omit<CreateProductDto, "images">,
+    files: Express.Multer.File[] | undefined,
+  ) {
     if (data.salePrice && data.salePrice >= data.basePrice) {
       throw new AppError("Giá khuyến mãi phải nhỏ hơn giá gốc", 400);
     }
+    let imageUrls: string[] = [];
+    if (files && files.length > 0) {
+      const uploadPromises = files.map(async (file) => {
+        const fileName = `products/${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
+        const fileUpload = bucket.file(fileName);
+        await fileUpload.save(file.buffer, {
+          metadata: {
+            contentType: file.mimetype,
+          },
+        });
+        await fileUpload.makePublic();
 
-    return await prisma.product.create({
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+        return publicUrl;
+      });
+      imageUrls = await Promise.all(uploadPromises);
+    }
+    if (imageUrls.length === 0) {
+      throw new AppError("Phải có ít nhất 1 ảnh sản phẩm", 400);
+    }
+    const product = await prisma.product.create({
       data: {
         name: data.name,
         slug: data.slug,
@@ -201,7 +230,7 @@ export class ProductService {
         basePrice: data.basePrice,
         salePrice: data.salePrice ?? null,
         stock: data.stock,
-        images: data.images,
+        images: imageUrls,
         specifications: (data.specifications as Prisma.InputJsonValue) ?? null,
         warrantyInfo: data.warrantyInfo ?? null,
         isFeatured: data.isFeatured,
@@ -214,14 +243,18 @@ export class ProductService {
         productVariants: true,
       },
     });
+    return this.enrichProductWithPromotion(product);
   }
 
   /**
    * Update product (Admin)
    */
-  async updateProduct(id: string, data: UpdateProductDto) {
+  async updateProduct(
+    id: string,
+    data: Omit<UpdateProductDto, "images">,
+    files?: Express.Multer.File[],
+  ) {
     const updateData: Prisma.ProductUpdateInput = {};
-
     if (data.name !== undefined) updateData.name = data.name;
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.description !== undefined)
@@ -232,16 +265,29 @@ export class ProductService {
     if (data.salePrice !== undefined)
       updateData.salePrice = data.salePrice ?? null;
     if (data.stock !== undefined) updateData.stock = data.stock;
-    if (data.images !== undefined) updateData.images = data.images;
-    if (data.specifications !== undefined)
+
+    if (files && files.length > 0) {
+      const uploadPromises = files.map(async (file) => {
+        const fileName = `products/${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
+        const fileUpload = bucket.file(fileName);
+        await fileUpload.save(file.buffer, {
+          metadata: { contentType: file.mimetype },
+        });
+        await fileUpload.makePublic();
+        return `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+      });
+      const newImageUrls = await Promise.all(uploadPromises);
+
+      updateData.images = newImageUrls;
+    }
+    if (data.specifications !== undefined) {
       updateData.specifications =
         (data.specifications as Prisma.InputJsonValue) ?? null;
+    }
     if (data.warrantyInfo !== undefined)
       updateData.warrantyInfo = data.warrantyInfo ?? null;
     if (data.isFeatured !== undefined) updateData.isFeatured = data.isFeatured;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
-
-    // Relationship
     if (data.brandId !== undefined) {
       updateData.brand = data.brandId
         ? { connect: { id: data.brandId } }
@@ -250,14 +296,12 @@ export class ProductService {
     if (data.categoryId !== undefined) {
       updateData.category = { connect: { id: data.categoryId } };
     }
-
     const product = await prisma.product.update({
       where: { id },
       data: updateData,
       include: { brand: true, category: true, productVariants: true },
     });
-
-    return product;
+    return this.enrichProductWithPromotion(product);
   }
 
   /**
@@ -397,6 +441,18 @@ export class ProductService {
     return await prisma.productVariant.delete({
       where: { id: variantId },
     });
+  }
+
+  private async enrichProductsWithPromotion(products: any[]) {
+    return Promise.all(
+      products.map((product) =>
+        promotionService.getProductWithPromotion(product),
+      ),
+    );
+  }
+
+  private async enrichProductWithPromotion(product: any) {
+    return promotionService.getProductWithPromotion(product);
   }
 }
 

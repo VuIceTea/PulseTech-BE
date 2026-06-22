@@ -65,3 +65,31 @@ export const authorizeRoles = (...roles: string[]): RequestHandler => {
     next();
   };
 };
+
+export const optionalAuthenticate = (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(" ")[1];
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as Record<
+      string,
+      unknown
+    >;
+    if (decoded && typeof decoded.userId === "string") {
+      req.user = {
+        userId: decoded.userId,
+        email: decoded.email as string,
+        role: decoded.role as string,
+      };
+    }
+  } catch (error) {}
+  next();
+};
