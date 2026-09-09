@@ -110,6 +110,7 @@ model Product {
   slug             String   @unique
   description      String?
   shortDescription String?
+  content          String?  @db.Text
   basePrice        Decimal
   salePrice        Decimal?
   stock            Int
